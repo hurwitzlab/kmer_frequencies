@@ -1,0 +1,9 @@
+[package]
+name = "kmer_frequencies"
+version = "0.1.0"
+authors = ["Ken Youens-Clark <kyclark@gmail.com>"]
+
+[dependencies]
+clap = "~2.32"
+bio = "*"
+itertools = "0.7.8"
