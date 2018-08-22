@@ -7,10 +7,18 @@ use bio::io::fasta;
 use std::collections::HashMap;
 
 use clap::{App, Arg};
-use std::{env, error::Error, path::PathBuf};
+use std::{
+    env, error::Error, path::{Path, PathBuf},
+};
 
 // --------------------------------------------------
 type MyResult<T> = Result<T, Box<Error>>;
+
+#[derive(Debug)]
+enum FileType {
+    Fasta,
+    Fastq,
+}
 
 // --------------------------------------------------
 #[derive(Debug)]
@@ -37,34 +45,22 @@ pub fn run(config: Config) -> MyResult<()> {
         )));
     }
 
-    // Some(f) => &f,
-    //     if let None = config.format {
-    //         _ => match Path::new(&buf).extension() {
-    //             Some(ext) => match ext.to_str() {
-    //                 Some("fasta") => "fasta",
-    //                 Some("fastq") => "fastq",
-    //                 _ =>
-    //             }
-    //             _ => {
-    //                 let msg = format!("Can't guess format for \"{}\"", &buf);
-    //                 return Err(From::from(msg));
-    //             }
-    //         },
-    //     };
-
-    //     let reader = if format == "fasta" {
-    //         fasta::Reader
-    //     } else if format == "fastq" {
-    //         fastq::Reader
-    //     } else {
-    //         return Err(From::from(format!("Unknown --format \"{}\"", format)))
-    //     }
-    //
-    //     let reader = reader::from_file()?;
+    let guessed_format = guess_format(&buf);
+    eprintln!("Guessed {:?}", guessed_format);
 
     let unique_kmers = all_kmers(config.kmer_size);
 
     println!("seq_id\t{}", unique_kmers.join("\t"));
+
+    //let reader = if format == "fasta" {
+    //    fasta::Reader
+    //} else if format == "fastq" {
+    //    fastq::Reader
+    //} else {
+    //    return Err(From::from(format!("Unknown --format \"{}\"", format)))
+    //}
+    //
+    //let reader = reader::from_file()?;
 
     let reader = fasta::Reader::from_file(buf)?;
     for result in reader.records() {
@@ -215,4 +211,24 @@ fn kproduct(seq: String, k: usize) -> Vec<String> {
 // --------------------------------------------------
 fn all_kmers(n: usize) -> Vec<String> {
     kproduct(String::from("ACGT"), n).into_iter().collect()
+}
+
+// --------------------------------------------------
+fn guess_format(buf: &PathBuf) -> Option<FileType> {
+    if let Some(ext) = Path::new(&buf).extension() {
+        if let Some(s) = ext.to_str() {
+            match s {
+                "fa" => Some(FileType::Fasta),
+                "fasta" => Some(FileType::Fasta),
+                "fna" => Some(FileType::Fasta),
+                "fastq" => Some(FileType::Fastq),
+                "fq" => Some(FileType::Fastq),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }
